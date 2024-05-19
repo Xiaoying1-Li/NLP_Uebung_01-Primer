@@ -26,7 +26,7 @@ def process_sentence(sentence, vocabulary):
     #print(f"Vocabulary: {vocabulary}")
     # Assume some processing that might filter sentences
     processed = ' '.join([bi for bi in (sentence[i:i+2] for i in range(len(sentence)-1)) if bi in vocabulary])
-    print(f"Processing sentence: '{sentence}' -> '{processed}'")  # Debug output
+    #print(f"Processing sentence: '{sentence}' -> '{processed}'")  # Debug output
     return processed
 
 class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
@@ -49,11 +49,9 @@ class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
         #weights = self._weights.unsqueeze(0)
         print("Features shape:", features.shape)  # 打印特征张量的形状
         print("Weights shape:", self._weights.shape)  # 打印权重张量的形状
-        if isinstance(features, tuple):
-            features = features[0]
-            #Element-wise multiplication and sum (dot product)
-        return torch.matmul(features, self._weights.unsqueeze(-1)).squeeze(-1) + self._bias
-        #return torch.matmul(features, weights) + self._bias
+        if features.size(1) != self._weights.size(0):
+            self._weights = nn.Parameter(torch.randn(features.size(1)))
+        return (torch.matmul(features, self._weights.unsqueeze(-1)) + self._bias).squeeze(-1)
 
     @property
     def weights(self) -> Tensor:
@@ -121,8 +119,8 @@ class LanguageClassificationDataset(AbstractLanguageClassificationDataset):
         english_sentences = file_en.read_text(encoding='utf-8').splitlines()
 
         # Adjust the number of sentences to process
-        german_sentences = german_sentences[:2]  # Process at most 2 German sentences
-        english_sentences = english_sentences[:1]  # Process at most 1 English sentence
+        #german_sentences = german_sentences[:2]  # Process at most 2 German sentences
+        #english_sentences = english_sentences[:1]  # Process at most 1 English sentence
 
         data = []
         for sentence in german_sentences:

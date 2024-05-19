@@ -68,19 +68,21 @@ test_dataset = LanguageClassificationDataset.from_files(deu_test, eng_test, voca
 
 
 def custom_collate_fn(batch):
-    # 获取 batch 中每个样本的特征和标签
     features, labels = zip(*batch)
-    # 计算 batch 中最长的特征长度
-    max_length = max(len(feature) for feature in features)
-    # 填充不同长度的特征张量
+    max_length = 1000
     padded_features = []
     for feature in features:
         padded_feature = torch.cat([feature, torch.zeros(max_length - len(feature), dtype=torch.long)])
         padded_features.append(padded_feature)
-    # 将填充后的特征张量和标签转换为张量并返回
-    return torch.stack(padded_features), torch.stack(labels)
+    return torch.stack(padded_features).float(), torch.stack(labels).float().squeeze(1)
 
 model = BinaryLanguageClassifier(num_features=len(vocabulary))
+print(f"Model initialized with {model.num_features} features.")
+
+for name, param in model.named_parameters():
+    if param.requires_grad:
+        print(f"{name}: {param.data}")  # 打印初始模型参数以检查其初始状态
+
 criterion = nn.BCEWithLogitsLoss()  # Binary classification
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 num_epochs = 10
@@ -99,6 +101,7 @@ for epoch in trange(num_epochs, desc="Epoch"):
         optimizer.zero_grad()
         outputs = model(features)  # Forward pass
         loss = criterion(outputs, labels)  # Compute the loss
+        print(f"Epoch {epoch + 1}, Loss: {loss.item()}")  # 输出每个batch的损失值
         loss.backward()  # Backpropagation
         optimizer.step()  # Update model parameters
 
@@ -123,6 +126,8 @@ total_loss, total_accuracy = 0, 0
 with torch.no_grad():  # Disable gradient computation
     for features, labels in test_dataloader:
         outputs = model(features)
+        print(f"Outputs: {outputs}")
+        print(f"Labels: {labels}")
         loss = criterion(outputs, labels)
         total_loss += loss.item()
         predictions = outputs.round()
