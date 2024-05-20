@@ -23,41 +23,23 @@ if __name__ == "__main__":
   eng_test = data_root / "eng_test.txt"
   eng_train = data_root / "eng_train.txt"
 
-'''
-def build_vocabulary(files, n_most_common=1000):
-    # Create a counter to hold bi-grams and their frequencies
-    bi_gram_counter = Counter()
-
-    # Process each file
-    for file in files:
-        text = file.read_text(encoding='utf-8').lower()
-        words = text.split()
-        bi_grams = zip(words[:-1], words[1:])
-        bi_gram_counter.update(bi_grams)
-
-    # Select the n most common bi-grams
-    common_bi_grams = {bg for bg, _ in bi_gram_counter.most_common(n_most_common)}
-    # Print the most common bi-grams
-    #print("Most common bi-grams:")
-    #for bg, count in bi_gram_counter.most_common(n_most_common):
-    #    print(bg, count)
-    return common_bi_grams
-'''
-
 def build_vocabulary(files, n_most_common=4):
-    # 创建一个计数器来保存 bi-gram 及其频率
+    """
+    Build a vocabulary of the most common bi-grams from the given files.
+    Args:
+        files (list[Path]): List of file paths to read text from.
+        n_most_common (int): Number of most common bi-grams to select.
+    Returns:
+        set: A set of the most common bi-grams.
+    """
     bi_gram_counter = Counter()
 
-    # 处理每个文件
     for file in files:
         text = file.read_text(encoding='utf-8').lower()
-        # 去除空格
         text = text.replace(' ', '')
-        # 确保bi-gram只包含两个字符，从第一个字符开始抓
         bi_grams = [text[i:i+2] for i in range(len(text) - 1)]
         bi_gram_counter.update(bi_grams)
 
-    # 选择出现频率最高的前 n 个 bi-gram
     common_bi_grams = {bg for bg, _ in bi_gram_counter.most_common(n_most_common)}
     return common_bi_grams
 
@@ -72,6 +54,13 @@ test_dataset = LanguageClassificationDataset.from_files(deu_test, eng_test, voca
 
 
 def custom_collate_fn(batch):
+    """
+    Custom collate function for padding sequences to the same length.
+    Args:
+        batch (list): List of tuples (features, labels).
+    Returns:
+        tuple: Padded features tensor and labels tensor.
+    """
     features, labels = zip(*batch)
     max_length = 1000
     padded_features = []
@@ -80,14 +69,12 @@ def custom_collate_fn(batch):
         padded_features.append(padded_feature)
     return torch.stack(padded_features).float(), torch.stack(labels).float().squeeze(1)
 
-
-
 model = BinaryLanguageClassifier(num_features=len(vocabulary))
 print(f"Model initialized with {model.num_features} features.")
 
 for name, param in model.named_parameters():
     if param.requires_grad:
-        print(f"{name}: {param.data}")  # 打印初始模型参数以检查其初始状态
+        print(f"{name}: {param.data}")
 
 criterion = nn.BCEWithLogitsLoss()  # Binary classification
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -107,7 +94,7 @@ for epoch in trange(num_epochs, desc="Epoch"):
         optimizer.zero_grad()
         outputs = model(features)  # Forward pass
         loss = criterion(outputs, labels)  # Compute the loss
-        #print(f"Epoch {epoch + 1}, Loss: {loss.item()}")  # 输出每个batch的损失值
+        #print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
         loss.backward()  # Backpropagation
         optimizer.step()  # Update model parameters
 
