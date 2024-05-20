@@ -12,6 +12,8 @@ from nlpds.submission.ex1.primer import (
     BinaryLanguageClassifier,
     LanguageClassificationDataset,
 )
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
@@ -23,7 +25,7 @@ if __name__ == "__main__":
   eng_test = data_root / "eng_test.txt"
   eng_train = data_root / "eng_train.txt"
 
-def build_vocabulary(files, n_most_common=4):
+def build_vocabulary(files, n_most_common=10):
     """
     Build a vocabulary of the most common bi-grams from the given files.
     Args:
@@ -44,7 +46,7 @@ def build_vocabulary(files, n_most_common=4):
     return common_bi_grams
 
 # Use the training files to build the vocabulary
-vocabulary = build_vocabulary([deu_train, deu_dev])
+vocabulary = build_vocabulary([deu_train, deu_test])
 print(vocabulary)
 
 # Extract individual datasets
@@ -116,6 +118,8 @@ for epoch in trange(num_epochs, desc="Epoch"):
 
 model.eval()  # Set the model to evaluation mode
 total_loss, total_accuracy = 0, 0
+all_labels = []
+all_predictions = []
 with torch.no_grad():  # Disable gradient computation
     for features, labels in test_dataloader:
         outputs = model(features)
@@ -125,6 +129,8 @@ with torch.no_grad():  # Disable gradient computation
         total_loss += loss.item()
         predictions = outputs.round()
         total_accuracy += (predictions == labels).sum().item()
+        all_labels.extend(labels.cpu().numpy())
+        all_predictions.extend(predictions.cpu().numpy())
 
 avg_loss = total_loss / len(test_dataloader)
 avg_accuracy = total_accuracy / len(test_dataset)
@@ -139,5 +145,17 @@ torch.save(model.state_dict(), 'model_weights.pth')
 with open('results.txt', 'w') as f:
     f.write(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {avg_accuracy:.4f}\n")
 
+# Generate confusion matrix
+cm = confusion_matrix(all_labels, all_predictions)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["English", "German"])
+disp.plot()
+plt.title(f"Confusion Matrix - Test Accuracy: {avg_accuracy:.4f}")
+plt.show()
 
-# Dummy implementation of creating a vocabulary and loading datasets
+# Save the model
+torch.save(model.state_dict(), 'model_weights.pth')
+
+# Optionally, save results to a file
+with open('results.txt', 'w') as f:
+    f.write(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {avg_accuracy:.4f}\n")
+    f.write(f"Confusion Matrix:\n{cm}\n")
