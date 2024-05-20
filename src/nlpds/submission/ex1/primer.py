@@ -26,7 +26,7 @@ def process_sentence(sentence, vocabulary):
     #print(f"Vocabulary: {vocabulary}")
     # Assume some processing that might filter sentences
     processed = ' '.join([bi for bi in (sentence[i:i+2] for i in range(len(sentence)-1)) if bi in vocabulary])
-    #print(f"Processing sentence: '{sentence}' -> '{processed}'")  # Debug output
+    print(f"Processing sentence: '{sentence}' -> '{processed}'")  # Debug output
     return processed
 
 class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
@@ -47,8 +47,8 @@ class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
         #weights = self._weights.unsqueeze(0)
-        print("Features shape:", features.shape)  # 打印特征张量的形状
-        print("Weights shape:", self._weights.shape)  # 打印权重张量的形状
+        #print("Features shape:", features.shape)  # 打印特征张量的形状
+        #print("Weights shape:", self._weights.shape)  # 打印权重张量的形状
         if features.size(1) != self._weights.size(0):
             self._weights = nn.Parameter(torch.randn(features.size(1)))
         return (torch.matmul(features, self._weights.unsqueeze(-1)) + self._bias).squeeze(-1)
