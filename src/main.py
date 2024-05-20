@@ -44,7 +44,7 @@ def build_vocabulary(files, n_most_common=1000):
     return common_bi_grams
 '''
 
-def build_vocabulary(files, n_most_common=100):
+def build_vocabulary(files, n_most_common=4):
     # 创建一个计数器来保存 bi-gram 及其频率
     bi_gram_counter = Counter()
 
@@ -80,6 +80,8 @@ def custom_collate_fn(batch):
         padded_features.append(padded_feature)
     return torch.stack(padded_features).float(), torch.stack(labels).float().squeeze(1)
 
+
+
 model = BinaryLanguageClassifier(num_features=len(vocabulary))
 print(f"Model initialized with {model.num_features} features.")
 
@@ -105,7 +107,7 @@ for epoch in trange(num_epochs, desc="Epoch"):
         optimizer.zero_grad()
         outputs = model(features)  # Forward pass
         loss = criterion(outputs, labels)  # Compute the loss
-        print(f"Epoch {epoch + 1}, Loss: {loss.item()}")  # 输出每个batch的损失值
+        #print(f"Epoch {epoch + 1}, Loss: {loss.item()}")  # 输出每个batch的损失值
         loss.backward()  # Backpropagation
         optimizer.step()  # Update model parameters
 
@@ -138,9 +140,9 @@ with torch.no_grad():  # Disable gradient computation
         total_accuracy += (predictions == labels).sum().item()
 
 avg_loss = total_loss / len(test_dataloader)
-avg_accuracy = total_accuracy / len(test_dataloader)
+avg_accuracy = total_accuracy / len(test_dataset)
 print(avg_accuracy)
-print(f"Test Loss: {len(test_dataloader):.4f}, Test Accuracy: { total_accuracy:.4f}")
+print(f"Test Loss: {avg_loss:.4f}, Test Accuracy: { avg_accuracy:.4f}")
 
 
 # Save the model

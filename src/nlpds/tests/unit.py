@@ -29,12 +29,13 @@ class SmallUnitTests(unittest.TestCase):
         lcd = LanguageClassificationDataset.from_files(
             Path("/Users/lixiaoying/Desktop/Uebung_01-Primer/src/nlpds/tests/data/a.txt"),
             Path("/Users/lixiaoying/Desktop/Uebung_01-Primer/src/nlpds/tests/data/b.txt"),
-            self.vocab,
+            self.vocab
         )
         features, labels = zip(*iter(lcd))
-        self.assertEqual(len(lcd), 3, "Expected 3 samples in the dataset")
-        self.assertEqual(len(features), 3, "Expected 3 samples in the dataset")
-        self.assertEqual(len(labels), 3, "Expected 3 samples in the dataset")
+        self.assertEqual(len(lcd), 3, "Expected 3 samples 1in the dataset")
+        self.assertEqual(len(features), 3, "Expected 3 samples2 in the dataset")
+        self.assertEqual(len(labels), 3, "Expected 3 labelsin the dataset")
+        print(labels)
 
         self.assertEqual(sum(labels), 1, "Expected 1 English sample (label=1)")
 

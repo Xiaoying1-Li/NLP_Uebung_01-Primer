@@ -26,8 +26,21 @@ def process_sentence(sentence, vocabulary):
     #print(f"Vocabulary: {vocabulary}")
     # Assume some processing that might filter sentences
     processed = ' '.join([bi for bi in (sentence[i:i+2] for i in range(len(sentence)-1)) if bi in vocabulary])
-    print(f"Processing sentence: '{sentence}' -> '{processed}'")  # Debug output
-    return processed
+
+    bgg = BiGramGenerator.from_vocabulary(vocabulary)
+
+
+
+
+    indices = [bgg[bi_gram] for bi_gram in vocabulary]
+    tensor = bgg.forward(sentence)
+    actual = [float(tensor[idx]) for idx in indices]
+
+
+
+
+    #print(f"Processing sentence: '{sentence}' -> '{actual}'")  # Debug output
+    return actual
 
 class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
     def __init__(
@@ -46,9 +59,6 @@ class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
         return self._num_features
 
     def forward(self, features: torch.Tensor) -> torch.Tensor:
-        #weights = self._weights.unsqueeze(0)
-        #print("Features shape:", features.shape)  # 打印特征张量的形状
-        #print("Weights shape:", self._weights.shape)  # 打印权重张量的形状
         if features.size(1) != self._weights.size(0):
             self._weights = nn.Parameter(torch.randn(features.size(1)))
         return (torch.matmul(features, self._weights.unsqueeze(-1)) + self._bias).squeeze(-1)
@@ -95,20 +105,24 @@ class LanguageClassificationDataset(AbstractLanguageClassificationDataset):
         self.char_to_index = {char: idx + 1 for idx, char in enumerate(string.ascii_lowercase)}  # +1 to reserve 0 for padding
 
     def __getitem__(self, index):
+        #print(index)
         raw_text, label = self.data[index]
         #print(f"Raw text: '{raw_text}'")
         #print(f"Label: {label}")
+
+        # Convert raw_text to string
+        if isinstance(raw_text, list):
+            raw_text = [str(num) for num in raw_text]
+            raw_text = ''.join(raw_text)
+
         # Convert characters to indices
         indices = [self.char_to_index.get(char, 0) for char in raw_text.replace(" ", "")]  # remove spaces and convert
-        #print(f"Indices: {indices}")
+
         # Create a tensor from indices, using long dtype for indices
         features_tensor = torch.tensor(indices, dtype=torch.long)
-        #print(f"Features tensor: {features_tensor}")
         label_tensor = torch.tensor([label], dtype=torch.float32)  # assuming binary labels
-        #print(f"Raw text: '{raw_text}'")
-        #print(f"Features tensor: {features_tensor}")
-        return features_tensor, label_tensor
 
+        return features_tensor, label_tensor
     def __len__(self) -> int:
         return len(self.data)
 
@@ -125,11 +139,11 @@ class LanguageClassificationDataset(AbstractLanguageClassificationDataset):
         data = []
         for sentence in german_sentences:
             #print(f"German sentence: {sentence}")  # 输出德语句子
-            data.append((process_sentence(sentence, vocabulary), 0))  # 0 for German
+            data.append((process_sentence(sentence, vocabulary), 1))  # 0 for German
 
         for sentence in english_sentences:
             #print(f"English sentence: {sentence}")  # 输出英语句子
-            data.append((process_sentence(sentence, vocabulary), 1))  # 1 for English
+            data.append((process_sentence(sentence, vocabulary), 0))  # 1 for English
 
 
         print(f"Total samples processed: {len(data)}")  # Debugging output
