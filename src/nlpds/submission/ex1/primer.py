@@ -6,7 +6,7 @@ from torch import Tensor
 import sys
 from typing import List, Collection
 import string
-
+from collections import Counter
 sys.path.insert(1, '/Users/lixiaoying/Desktop/Uebung_01-Primer/src')
 
 from nlpds.abc.ex1.primer import (
@@ -26,7 +26,7 @@ def process_sentence(sentence, vocabulary):
     tensor = bgg.forward(sentence)
     actual = [float(tensor[idx]) for idx in indices]
     #print(f"Processing sentence: '{sentence}' -> '{actual}'")  # Debug output
-    return actual
+    return processed
 
 class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
     def __init__(self,num_features: int):
@@ -37,8 +37,8 @@ class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
                """
         super().__init__()
         self._num_features = num_features
-        self._weights = nn.Parameter(torch.randn(num_features))
-        self._bias = nn.Parameter(torch.randn(1))
+        self._weights = nn.Parameter(torch.ones(num_features))
+        self._bias = nn.Parameter(torch.zeros(1))
         self._device = torch.device('cpu')
 
 
@@ -59,8 +59,7 @@ class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
               Returns:
                   torch.Tensor: The output of the classifier.
               """
-        if features.size(1) != self._weights.size(0):
-            self._weights = nn.Parameter(torch.randn(features.size(1)))
+
         return (torch.matmul(features, self._weights.unsqueeze(-1)) + self._bias).squeeze(-1)
 
     @property
@@ -70,6 +69,7 @@ class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
                Returns:
                    Tensor: The weights of the classifier.
                """
+
         return self._weights
 
     @weights.setter
@@ -144,37 +144,35 @@ class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
 
 
 class LanguageClassificationDataset(AbstractLanguageClassificationDataset):
-    def __init__(self, data):
-        """
-        Initialize the LanguageClassificationDataset with given data.
-        Args:
-            data (list): A list of tuples containing processed sentences and their corresponding labels.
-        """
+    def __init__(self, data,vocabulary):
         self.data = data
-        self.char_to_index = {char: idx + 1 for idx, char in enumerate(string.ascii_lowercase)}  # +1 to reserve 0 for padding
+        self.char_to_index = {char: idx for idx, char in enumerate((sorted(vocabulary)))}
+
+        #self.char_to_index = {char: idx + 1 for idx, char in enumerate(string.ascii_lowercase)}  # +1 to reserve 0 for padding
 
     def __getitem__(self, index):
-        """
-        Get a data sample (features and label) by index.
-        Args:
-            index (int): The index of the data sample.
-        Returns:
-            tuple: A tuple containing a tensor of features and a tensor of the label.
-        """
-        #print(index)
         raw_text, label = self.data[index]
-        #print(f"Raw text: '{raw_text}'")
-        #print(f"Label: {label}")
-        # Convert raw_text to string
-        if isinstance(raw_text, list):
-            raw_text = [str(num) for num in raw_text]
-            raw_text = ''.join(raw_text)
 
-        # Convert characters to indices
-        indices = [self.char_to_index.get(char, 0) for char in raw_text.replace(" ", "")]  # remove spaces and convert
 
-        # Create a tensor from indices, using long dtype for indices
-        features_tensor = torch.tensor(indices, dtype=torch.long)
+        # Split raw_text by space to get double character combinations
+        char_pairs = raw_text.split()
+        pair_counts = Counter(char_pairs)
+        total_pairs = sum(pair_counts.values())
+
+        # Initialize frequencies with zeros
+        frequencies = [0] * len(self.char_to_index)
+        # Initialize frequencies with zeros
+
+
+        # Calculate the relative frequency for each pair in the vocabulary
+        for pair, count in pair_counts.items():
+            if pair in self.char_to_index:
+                id = self.char_to_index[pair]
+                frequency = count /total_pairs if total_pairs > 0 else 0
+                frequencies[id] = frequency
+
+        # Create a tensor from frequencies, using float dtype
+        features_tensor = torch.tensor(frequencies, dtype=torch.float32)
         label_tensor = torch.tensor([label], dtype=torch.float32)  # assuming binary labels
 
         return features_tensor, label_tensor
@@ -208,13 +206,13 @@ class LanguageClassificationDataset(AbstractLanguageClassificationDataset):
         data = []
         for sentence in german_sentences:
             #print(f"German sentence: {sentence}")
-            data.append((process_sentence(sentence, vocabulary), 1))  # 0 for German
+            data.append((process_sentence(sentence, vocabulary), 0))  # 0 for German
 
         for sentence in english_sentences:
             #print(f"English sentence: {sentence}")
-            data.append((process_sentence(sentence, vocabulary), 0))  # 1 for English
+            data.append((process_sentence(sentence, vocabulary), 1))  # 1 for English
         print(f"Total samples processed: {len(data)}")  # Debugging output
-        return cls(data)
+        return cls(data, vocabulary)
 
 
 

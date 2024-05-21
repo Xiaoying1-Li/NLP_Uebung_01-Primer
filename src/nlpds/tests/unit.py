@@ -3,7 +3,7 @@ from pathlib import Path
 
 import torch
 import sys
-sys.path.insert(1,'/Users/lixiaoying/Desktop/Uebung_01-Primer/src')
+sys.path.insert(1,"/Users/smile/Desktop/NLP/NLP/NLP_Uebung_01-Primer/src")
 
 class SmallUnitTests(unittest.TestCase):
     vocab = ("aa", "ab", "ba", "xy")

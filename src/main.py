@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
-  data_root = Path("/Users/lixiaoying/Desktop/Uebung_01-Primer/data/ex1/primer/")
+  data_root = Path("/Users/smile/Desktop/NLP/NLP/NLP_Uebung_01-Primer/data/ex1/primer/")
   deu_dev = data_root / "deu_dev.txt"
   deu_test = data_root / "deu_test.txt"
   deu_train = data_root / "deu_train.txt"
@@ -26,27 +26,29 @@ if __name__ == "__main__":
   eng_train = data_root / "eng_train.txt"
 
 def build_vocabulary(files, n_most_common=10):
-    """
-    Build a vocabulary of the most common bi-grams from the given files.
-    Args:
-        files (list[Path]): List of file paths to read text from.
-        n_most_common (int): Number of most common bi-grams to select.
-    Returns:
-        set: A set of the most common bi-grams.
-    """
+    # 创建一个计数器来保存 bi-gram 及其频率
     bi_gram_counter = Counter()
 
+    # 处理每个文件
     for file in files:
         text = file.read_text(encoding='utf-8').lower()
+        # 去除空格
         text = text.replace(' ', '')
+        # 确保bi-gram只包含两个字符，从第一个字符开始抓
         bi_grams = [text[i:i+2] for i in range(len(text) - 1)]
         bi_gram_counter.update(bi_grams)
 
+    # 选择出现频率最高的前 n 个 bi-gram
     common_bi_grams = {bg for bg, _ in bi_gram_counter.most_common(n_most_common)}
     return common_bi_grams
 
 # Use the training files to build the vocabulary
-vocabulary = build_vocabulary([deu_train, deu_test])
+vocabulary_de= build_vocabulary([deu_train, deu_dev])
+print(vocabulary_de)
+vocabulary_en= build_vocabulary([eng_train, eng_dev])
+print(vocabulary_en)
+common_words = vocabulary_de.intersection(vocabulary_en)
+vocabulary = vocabulary_de - common_words
 print(vocabulary)
 
 # Extract individual datasets
@@ -64,7 +66,8 @@ def custom_collate_fn(batch):
         tuple: Padded features tensor and labels tensor.
     """
     features, labels = zip(*batch)
-    max_length = 1000
+    max_length = max([len(feature) for feature in features])
+
     padded_features = []
     for feature in features:
         padded_feature = torch.cat([feature, torch.zeros(max_length - len(feature), dtype=torch.long)])
@@ -80,12 +83,12 @@ for name, param in model.named_parameters():
 
 criterion = nn.BCEWithLogitsLoss()  # Binary classification
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-num_epochs = 10
-batch_size = 1000
+num_epochs = 200
+batch_size = 4000
 
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
-dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
-test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
+dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
+test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
 
 for epoch in trange(num_epochs, desc="Epoch"):
     model.train()  # Set the model to training mode
@@ -94,7 +97,8 @@ for epoch in trange(num_epochs, desc="Epoch"):
         if features.nelement() == 0:
             raise ValueError("Features are empty. Check data processing.")
         optimizer.zero_grad()
-        outputs = model(features)  # Forward pass
+        outputs = model(features)
+         #Forward pass
         loss = criterion(outputs, labels)  # Compute the loss
         #print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
         loss.backward()  # Backpropagation
@@ -144,7 +148,7 @@ torch.save(model.state_dict(), 'model_weights.pth')
 # Optionally, save results to a file
 with open('results.txt', 'w') as f:
     f.write(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {avg_accuracy:.4f}\n")
-
+"""
 # Generate confusion matrix
 cm = confusion_matrix(all_labels, all_predictions)
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["English", "German"])
@@ -159,3 +163,4 @@ torch.save(model.state_dict(), 'model_weights.pth')
 with open('results.txt', 'w') as f:
     f.write(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {avg_accuracy:.4f}\n")
     f.write(f"Confusion Matrix:\n{cm}\n")
+"""
