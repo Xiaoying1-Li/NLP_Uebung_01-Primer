@@ -146,9 +146,10 @@ class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
 class LanguageClassificationDataset(AbstractLanguageClassificationDataset):
     def __init__(self, data,vocabulary):
         self.data = data
+        # pass our vocab to the model
         self.char_to_index = {char: idx for idx, char in enumerate((sorted(vocabulary)))}
 
-        #self.char_to_index = {char: idx + 1 for idx, char in enumerate(string.ascii_lowercase)}  # +1 to reserve 0 for padding
+
 
     def __getitem__(self, index):
         raw_text, label = self.data[index]
