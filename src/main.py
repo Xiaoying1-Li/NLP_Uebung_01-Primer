@@ -27,7 +27,7 @@ if __name__ == "__main__":
   eng_train = data_root / "eng_train.txt"
 
 def build_vocabulary(files, n_most_common=10):
-    """
+    """from xiaoyan feng
     Build a vocabulary of the most common bi-grams from the given files.
     Args:
         files (list[Path]): List of file paths to read text from.
@@ -62,7 +62,7 @@ test_dataset = LanguageClassificationDataset.from_files(deu_test, eng_test, voca
 
 
 def custom_collate_fn(batch):
-    """
+    """from xiaoying li
     Custom collate function for padding sequences to the same length.
     Args:
         batch (list): List of tuples (features, labels).
@@ -95,6 +95,7 @@ train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True
 dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
 test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
 
+#from xiaoyan feng
 for epoch in trange(num_epochs, desc="Epoch"):
     model.train()  # Set the model to training mode
     for features, labels in train_dataloader:
@@ -157,6 +158,8 @@ with open('results.txt', 'w') as f:
 all_labels = np.array(all_labels)
 all_predictions = np.array(all_predictions)
 
+
+# from xiaoying li
 #filter the value not is 1 or 0
 valid_indices = np.isin(all_labels, [0, 1]) & np.isin(all_predictions, [0, 1])
 all_labels = all_labels[valid_indices]

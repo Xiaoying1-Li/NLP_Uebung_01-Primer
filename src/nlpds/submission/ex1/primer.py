@@ -18,6 +18,7 @@ from nlpds.abc.ex1.primer import (
 )
 
 def process_sentence(sentence, vocabulary):
+    # from xiaoying li
     #print(f"Vocabulary: {vocabulary}")
     # Assume some processing that might filter sentences
     processed = ' '.join([bi for bi in (sentence[i:i+2] for i in range(len(sentence)-1)) if bi in vocabulary])
@@ -144,6 +145,7 @@ class BinaryLanguageClassifier(AbstractBinaryLanguageClassifier):
 
 
 class LanguageClassificationDataset(AbstractLanguageClassificationDataset):
+    # from xiaoyan feng
     def __init__(self, data,vocabulary):
         """
         Initializes the dataset object.
@@ -233,6 +235,7 @@ class LanguageClassificationDataset(AbstractLanguageClassificationDataset):
 
 
 class BiGramGenerator(AbstractBiGramGenerator):
+    # from xiaoying li
     def __init__(self, vocabulary: Collection[str]):
         """
         Initialize the BiGramGenerator with a given vocabulary.
