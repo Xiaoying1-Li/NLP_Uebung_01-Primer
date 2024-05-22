@@ -14,6 +14,7 @@ from nlpds.submission.ex1.primer import (
 )
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
+import numpy as np
 
 if __name__ == "__main__":
 
@@ -46,7 +47,12 @@ def build_vocabulary(files, n_most_common=10):
     return common_bi_grams
 
 # Use the training files to build the vocabulary
-vocabulary = build_vocabulary([deu_train, deu_test])
+vocabulary_de= build_vocabulary([deu_train, deu_dev])
+print(vocabulary_de)
+vocabulary_en= build_vocabulary([eng_train, eng_dev])
+print(vocabulary_en)
+common_words = vocabulary_de.intersection(vocabulary_en)
+vocabulary = vocabulary_de - common_words
 print(vocabulary)
 
 # Extract individual datasets
@@ -64,12 +70,14 @@ def custom_collate_fn(batch):
         tuple: Padded features tensor and labels tensor.
     """
     features, labels = zip(*batch)
-    max_length = 1000
+    max_length = max([len(feature) for feature in features])
+
     padded_features = []
     for feature in features:
         padded_feature = torch.cat([feature, torch.zeros(max_length - len(feature), dtype=torch.long)])
         padded_features.append(padded_feature)
     return torch.stack(padded_features).float(), torch.stack(labels).float().squeeze(1)
+
 
 model = BinaryLanguageClassifier(num_features=len(vocabulary))
 print(f"Model initialized with {model.num_features} features.")
@@ -80,12 +88,12 @@ for name, param in model.named_parameters():
 
 criterion = nn.BCEWithLogitsLoss()  # Binary classification
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-num_epochs = 10
-batch_size = 1000
+num_epochs = 200
+batch_size = 4000
 
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
-dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
-test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=custom_collate_fn)
+train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
+dev_dataloader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
+test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True, collate_fn=custom_collate_fn)
 
 for epoch in trange(num_epochs, desc="Epoch"):
     model.train()  # Set the model to training mode
@@ -94,7 +102,8 @@ for epoch in trange(num_epochs, desc="Epoch"):
         if features.nelement() == 0:
             raise ValueError("Features are empty. Check data processing.")
         optimizer.zero_grad()
-        outputs = model(features)  # Forward pass
+        outputs = model(features)
+         #Forward pass
         loss = criterion(outputs, labels)  # Compute the loss
         #print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
         loss.backward()  # Backpropagation
@@ -145,17 +154,22 @@ torch.save(model.state_dict(), 'model_weights.pth')
 with open('results.txt', 'w') as f:
     f.write(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {avg_accuracy:.4f}\n")
 
-# Generate confusion matrix
+all_labels = np.array(all_labels)
+all_predictions = np.array(all_predictions)
+
+#filter the value not is 1 or 0
+valid_indices = np.isin(all_labels, [0, 1]) & np.isin(all_predictions, [0, 1])
+all_labels = all_labels[valid_indices]
+all_predictions = all_predictions[valid_indices]
+
+# generate confusion matrix
 cm = confusion_matrix(all_labels, all_predictions)
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["English", "German"])
-disp.plot()
-plt.title(f"Confusion Matrix - Test Accuracy: {avg_accuracy:.4f}")
-plt.show()
 
-# Save the model
-torch.save(model.state_dict(), 'model_weights.pth')
+print("Confusion matrix:\n", cm)
 
-# Optionally, save results to a file
-with open('results.txt', 'w') as f:
-    f.write(f"Test Loss: {avg_loss:.4f}, Test Accuracy: {avg_accuracy:.4f}\n")
-    f.write(f"Confusion Matrix:\n{cm}\n")
+if cm.shape == (2, 2):
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["English", "German"])
+    disp.plot()
+    plt.title(f"Confusion Matrix - Test Accuracy: {avg_accuracy:.4f}")
+    plt.show()
+
