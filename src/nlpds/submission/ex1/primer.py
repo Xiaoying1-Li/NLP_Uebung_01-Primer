@@ -222,7 +222,7 @@ class LanguageClassificationDataset(AbstractLanguageClassificationDataset):
         data = []
         for sentence in german_sentences:
             #print(f"German sentence: {sentence}")
-            data.append((process_sentence(sentence, vocabulary), 0))  # 0 for German
+            data.append((process_sentence(sentence, vocabulary), 0))  ## 0 for German
 
         for sentence in english_sentences:
             #print(f"English sentence: {sentence}")
